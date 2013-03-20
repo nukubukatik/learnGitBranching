@@ -24,6 +24,12 @@ exports.strings = {
     'zh_CN': '试试看你能否在 {best} 之内搞定 :D'
   },
   ///////////////////////////////////////////////////////////////////////////
+  'hg-update-not-child': {
+    '__desc__': 'One of the lines for git status output',
+    'en_US': 'Update without -C must target ancestor or descendant',
+    'zh_CN': '不干净的update目标必须是先后代！'
+  },
+  ///////////////////////////////////////////////////////////////////////////
   'git-status-detached': {
     '__desc__': 'One of the lines for git status output',
     'en_US': 'Detached head!',

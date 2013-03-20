@@ -16,7 +16,7 @@ var CommandResult = Errors.CommandResult;
 function GitEngine(options) {
   this.rootCommit = null;
   this.refs = {};
-  this.HEAD = null;
+  this.WD = null;
 
   this.branchCollection = options.branches;
   this.commitCollection = options.collection;
@@ -979,7 +979,7 @@ GitEngine.prototype.rebase = function(targetSource, currentLocation) {
 
     // git for some reason always checks out the branch you are rebasing,
     // no matter the result of the rebase
-    this.checkout(currentLocation);
+    this.update(currentLocation);
 
     // returning instead of throwing makes a tree refresh
     return;
@@ -992,7 +992,7 @@ GitEngine.prototype.rebase = function(targetSource, currentLocation) {
     // instead of throwing
     this.command.setResult(intl.str('git-result-fastforward'));
 
-    this.checkout(currentLocation);
+    this.update(currentLocation);
     return;
   }
 
@@ -1185,11 +1185,11 @@ GitEngine.prototype.rebaseFinish = function(toRebaseRough, stopSet, targetSource
     var steps = animationResponse.rebaseSteps;
     var newestCommit = steps[steps.length - 1].newCommit;
 
-    this.checkout(newestCommit);
+    this.update(newestCommit);
   } else {
     // now we just need to update the rebased branch is
     this.setTargetLocation(currentLocation, base);
-    this.checkout(currentLocation);
+    this.update(currentLocation);
   }
 
   // for animation
@@ -1255,58 +1255,43 @@ GitEngine.prototype.merge = function(targetSource) {
   return mergeCommit;
 };
 
-GitEngine.prototype.checkoutStarter = function() {
+GitEngine.prototype.updateStarter = function() {
   var args = null;
-  if (this.commandOptions['-b']) {
-    if (this.generalArgs.length) {
-      throw new GitError({
-        msg: intl.str('git-error-options')
-      });
-    }
-
-    // the user is really trying to just make a branch and then switch to it. so first:
-    args = this.commandOptions['-b'];
-    this.twoArgsImpliedHead(args, '-b');
-
-    var validId = this.validateBranchName(args[0]);
-    this.branch(validId, args[1]);
-    this.checkout(validId);
-    return;
+  if (this.commandOptions['-r']) {
+    // if (this.generalArgs.length) {
+    //   throw new GitError({
+    //     msg: intl.str('git-error-options')
+    //   });
+    // }
+    //GitEngine.prototype.validateArgBounds = function(args, lower, upper, option) {
+    args = this.commandOptions['-r'];
+    this.validateArgBounds(args, 2, 2, '-r');
+    
+    this.update(args[0]);
+  }
+  if (this.commandOptions['-C']) {
+    this.command.addWarning(
+      intl.str('git-warning-clean')
+    );
+  }else{
+    this.command.addWarning(
+      intl.str('hg-warning-not-descendent')
+    );
   }
 
-  if (this.commandOptions['-']) {
-    // get the heads last location
-    var lastPlace = this.HEAD.get('lastLastTarget');
-    if (!lastPlace) {
-      throw new GitError({
-        msg: intl.str('git-result-nothing')
-      });
-    }
-    this.HEAD.set('target', lastPlace);
-    return;
-  }
-
-  if (this.commandOptions['-B']) {
-    args = this.commandOptions['-B'];
-    this.twoArgsImpliedHead(args, '-B');
-
-    this.forceBranch(args[0], args[1]);
-    this.checkout(args[0]);
-    return;
-  }
 
   this.validateArgBounds(this.generalArgs, 1, 1);
 
-  this.checkout(this.unescapeQuotes(this.generalArgs[0]));
+  this.update(this.unescapeQuotes(this.generalArgs[0]));
 };
 
-GitEngine.prototype.checkout = function(idOrTarget) {
-  var target = this.resolveID(idOrTarget);
-  if (target.get('id') === 'HEAD') {
-    // git checkout HEAD is a
-    // meaningless command but i used to do this back in the day
-    return;
+GitEngine.prototype.update = function(idOrTarget) {
+  
+  if (idOrTarget === undefined) {
+    idOrTarget = 'tip';
   }
+  
+  var target = this.resolveID(idOrTarget);
 
   var type = target.get('type');
   if (type !== 'branch' && type !== 'commit') {
@@ -1315,10 +1300,10 @@ GitEngine.prototype.checkout = function(idOrTarget) {
     });
   }
 
-  this.HEAD.set('target', target);
+  // this.HEAD.set('target', target);
 };
 
-GitEngine.prototype.branchStarter = function() {
+GitEngine.prototype.bookmarkStarter = function() {
   var args = null;
   // handle deletion first
   if (this.commandOptions['-d'] || this.commandOptions['-D']) {
@@ -1331,13 +1316,6 @@ GitEngine.prototype.branchStarter = function() {
     return;
   }
 
-  if (this.commandOptions['--contains']) {
-    args = this.commandOptions['--contains'];
-    this.validateArgBounds(args, 1, 1, '--contains');
-    this.printBranchesWithout(args[0]);
-    return;
-  }
-
   if (this.commandOptions['-f']) {
     args = this.commandOptions['-f'];
     this.twoArgsImpliedHead(args, '-f');
@@ -1347,14 +1325,61 @@ GitEngine.prototype.branchStarter = function() {
     return;
   }
 
+  if (this.commandOptions['-i']) {
+    this.twoArgsImpliedHead(this.generalArgs);
+    this.branch(this.generalArgs[0], this.generalArgs[1]);
+
+    return;
+  }
+
 
   if (this.generalArgs.length === 0) {
     this.printBranches(this.getBranches());
     return;
   }
 
+  if (this.commandOptions['-m']) {
+    args = this.commandOptions['-m'];
+    this.twoArgsImpliedHead(this.generalArgs);
+
+    //fail if already exists
+    if (this.refs[args[0]]) {
+      throw new GitError({
+        msg: intl.str('git-error-options')
+      });
+    }
+
+    
+    this.deleteBranch(this.generalArgs[0]);
+    this.branch(args[0], this.generalArgs[1]);
+    return;
+  }
+
+  if (this.commandOptions['-r']) {
+    args = this.commandOptions['-r'];
+    this.generalArgs[1] = args[0];
+  }
+  
+  // <TAKEN FROM git branch
+  // this might be NOARGS for hg
+  // if (this.commandOptions['-']) {
+  //   // get the heads last location
+  //   var lastPlace = this.HEAD.get('lastLastTarget');
+  //   if (!lastPlace) {
+  //     throw new GitError({
+  //       msg: intl.str('git-result-nothing')
+  //     });
+  //   }
+  //   this.HEAD.set('target', lastPlace);
+  //   return;
+  // }
+  // TAKEN FROM git branch>
+
+
   this.twoArgsImpliedHead(this.generalArgs);
   this.branch(this.generalArgs[0], this.generalArgs[1]);
+  // this.forceBranch(args[0], args[1]);
+  this.update(this.generalArgs[0]);
 };
 
 GitEngine.prototype.forceBranch = function(branchName, where) {

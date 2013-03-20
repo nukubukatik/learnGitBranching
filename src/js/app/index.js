@@ -107,32 +107,32 @@ var initDemo = function(sandbox) {
 
   // being the smart programmer I am (not), I dont include a true value on demo, so
   // I have to check if the key exists here
-  if (params.hasOwnProperty('demo')) {
-    sandbox.mainVis.customEvents.on('gitEngineReady', function() {
-      eventBaton.trigger(
-        'commandSubmitted',
-        [
-          "git commit; git checkout -b bugFix C1; git commit; git merge master; git checkout master; git commit; git rebase bugFix;",
-          "delay 1000; reset;",
-          "level rebase1 --noFinishDialog --noStartCommand --noIntroDialog;",
-          "delay 2000; show goal; delay 1000; hide goal;",
-          "git checkout bugFix; git rebase master; git checkout side; git rebase bugFix;",
-          "git checkout another; git rebase side; git rebase another master;",
-          "help; levels"
-        ].join(''));
-    });
-  } else if (!params.hasOwnProperty('NODEMO')) {
-    sandbox.mainVis.customEvents.on('gitEngineReady', function() {
-      eventBaton.trigger(
-        'commandSubmitted',
-        [
-          "git help;",
-          "delay 1000;",
-          "help;",
-          "levels"
-        ].join(''));
-    });
-  }
+  // if (params.hasOwnProperty('demo')) {
+  //   sandbox.mainVis.customEvents.on('gitEngineReady', function() {
+  //     eventBaton.trigger(
+  //       'commandSubmitted',
+  //       [
+  //         "git commit; git checkout -b bugFix C1; git commit; git merge master; git checkout master; git commit; git rebase bugFix;",
+  //         "delay 1000; reset;",
+  //         "level rebase1 --noFinishDialog --noStartCommand --noIntroDialog;",
+  //         "delay 2000; show goal; delay 1000; hide goal;",
+  //         "git checkout bugFix; git rebase master; git checkout side; git rebase bugFix;",
+  //         "git checkout another; git rebase side; git rebase another master;"
+  //         // "help; levels"
+  //       ].join(''));
+  //   });
+  // } else if (!params.hasOwnProperty('NODEMO')) {
+  //   sandbox.mainVis.customEvents.on('gitEngineReady', function() {
+  //     eventBaton.trigger(
+  //       'commandSubmitted',
+  //       [
+  //         "git help;",
+  //         "delay 1000;",
+  //         "help;",
+  //         "levels"
+  //       ].join(''));
+  //   });
+  // }
 
   if (params.locale !== undefined && params.locale.length) {
     constants.GLOBAL.locale = params.locale;

@@ -8,31 +8,31 @@ var Warning = Errors.Warning;
 var CommandResult = Errors.CommandResult;
 
 var shortcutMap = {
-  'git commit': /^(gc|git ci)($|\s)/,
-  'git add': /^ga($|\s)/,
-  'git checkout': /^(go|git co)($|\s)/,
-  'git rebase': /^gr($|\s)/,
-  'git branch': /^(gb|git br)($|\s)/,
-  'git status': /^(gst|gs|git st)($|\s)/,
-  'git help': /^git$/
+  'hg commit': /^(hc|hg ci)($|\s)/,
+  // 'git add': /^ga($|\s)/,
+  'hg update': /^(hu|hg checkout|hg up|hg co)($|\s)/,
+  // 'git rebase': /^gr($|\s)/,
+  'hg bookmark': /^(hb|hg bm)($|\s)/,
+  'hg summary': /^(hs|hg sum)($|\s)/,
+  'hg help': /^hg$/
 };
 
 var instantCommands = [
   [/^git help($|\s)/, function() {
     var lines = [
-      intl.str('git-version'),
+      intl.str('hg-version'),
       '<br/>',
-      intl.str('git-usage'),
-      _.escape(intl.str('git-usage-command')),
+      intl.str('hg-usage'),
+      _.escape(intl.str('hg-usage-command')),
       '<br/>',
-      intl.str('git-supported-commands'),
+      intl.str('hg-supported-commands'),
       '<br/>'
     ];
     var commands = GitOptionParser.prototype.getMasterOptionMap();
 
     // build up a nice display of what we support
     _.each(commands, function(commandOptions, command) {
-      lines.push('git ' + command);
+      lines.push('hg ' + command);
       _.each(commandOptions, function(vals, optionName) {
         lines.push('\t ' + optionName);
       }, this);
@@ -50,18 +50,18 @@ var instantCommands = [
 var regexMap = {
   // ($|\s) means that we either have to end the string
   // after the command or there needs to be a space for options
-  'git commit': /^git +commit($|\s)/,
-  'git add': /^git +add($|\s)/,
-  'git checkout': /^git +checkout($|\s)/,
-  'git rebase': /^git +rebase($|\s)/,
-  'git reset': /^git +reset($|\s)/,
-  'git branch': /^git +branch($|\s)/,
-  'git revert': /^git +revert($|\s)/,
-  'git log': /^git +log($|\s)/,
-  'git merge': /^git +merge($|\s)/,
-  'git show': /^git +show($|\s)/,
-  'git status': /^git +status($|\s)/,
-  'git cherry-pick': /^git +cherry-pick($|\s)/
+  'hg commit': /^hg +commit($|\s)/,
+  // 'git add': /^git +add($|\s)/,
+  'hg update': /^hg +update($|\s)/,
+  // 'git rebase': /^git +rebase($|\s)/,
+  // 'git reset': /^git +reset($|\s)/,
+  'hg bookmark': /^hg +bookmark($|\s)/,
+  // 'git revert': /^git +revert($|\s)/,
+  'hg log': /^hg +log($|\s)/,
+  'hg merge': /^hg +merge($|\s)/,
+  // 'git show': /^git +show($|\s)/,
+  'hg summary': /^hg +summary($|\s)/
+  // 'git cherry-pick': /^git +cherry-pick($|\s)/
 };
 
 var parse = function(str) {
@@ -72,7 +72,7 @@ var parse = function(str) {
   _.each(regexMap, function(regex, thisMethod) {
     if (regex.exec(str)) {
       options = str.slice(thisMethod.length + 1);
-      method = thisMethod.slice('git '.length);
+      method = thisMethod.slice('hg '.length);
     }
   });
 
@@ -118,34 +118,36 @@ GitOptionParser.prototype.getMasterOptionMap = function() {
     commit: {
       '--amend': false,
       '-a': false, // warning
-      '-am': false, // warning
-      '-m': false
+      '-am': false // warning
+      // '-m': false
     },
-    status: {},
+    summary: {},
     log: {},
     add: {},
-    'cherry-pick': {},
-    branch: {
+    // 'cherry-pick': {},
+    bookmark: {
+      '-i': false,
+      '-m': false,
+      '-r': false,
       '-d': false,
-      '-D': false,
-      '-f': false,
-      '--contains': false
+      '-f': false
+      // '--contains': false
     },
-    checkout: {
-      '-b': false,
-      '-B': false,
-      '-': false
+    update: {
+      '-r': false,
+      '-C': false
+      // '-': false
     },
-    reset: {
-      '--hard': false,
-      '--soft': false // this will raise an error but we catch it in gitEngine
-    },
-    merge: {},
-    rebase: {
-      '-i': false // the mother of all options
-    },
-    revert: {},
-    show: {}
+    // reset: {
+    //   '--hard': false,
+    //   '--soft': false // this will raise an error but we catch it in gitEngine
+    // },
+    merge: {}
+    // rebase: {
+    //   '-i': false // the mother of all options
+    // },
+    // revert: {},
+    // show: {}
   };
 };
 
