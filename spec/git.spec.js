@@ -28,10 +28,10 @@ describe('GitEngine', function() {
     );
   });
 
-  it('Checkouts', function() {
+  it('Updates', function() {
     expectTree(
-      'hg bm side; hg update -r side',
-      '{"branches":{"master":{"target":"C1","id":"master"},"side":{"target":"C1","id":"side"}},"commits":{"C0":{"parents":[],"id":"C0","rootCommit":true},"C1":{"parents":["C0"],"id":"C1"}},"HEAD":{"target":"side","id":"HEAD"}}'
+      'hg bm side; hg update side',
+      '{"commits": {"C1": {"parents": ["C0"], "id": "C1"}, "C0": {"parents": [], "id": "C0", "rootCommit": true}}, "wd": {"active_bm": "side", "id": "wd", "target": "C1"}, "branches": {"main": {"target": "C1", "id": "main"}, "side": {"target": "C1", "id": "side"}}}'
     );
   });
 

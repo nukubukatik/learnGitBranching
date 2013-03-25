@@ -16,7 +16,8 @@ var CommandResult = Errors.CommandResult;
 function GitEngine(options) {
   this.rootCommit = null;
   this.refs = {};
-  this.WD = null;
+  this.wd = null;
+  this.tip  = null; //should always just be largest CX for now
 
   this.branchCollection = options.branches;
   this.commitCollection = options.collection;
@@ -48,7 +49,8 @@ GitEngine.prototype.initUniqueID = function() {
 
 GitEngine.prototype.defaultInit = function() {
   // lol 80 char limit
-  var defaultTree = JSON.parse(unescape("%7B%22branches%22%3A%7B%22master%22%3A%7B%22target%22%3A%22C1%22%2C%22id%22%3A%22master%22%2C%22type%22%3A%22branch%22%7D%7D%2C%22commits%22%3A%7B%22C0%22%3A%7B%22type%22%3A%22commit%22%2C%22parents%22%3A%5B%5D%2C%22author%22%3A%22Peter%20Cottle%22%2C%22createTime%22%3A%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%22commitMessage%22%3A%22Quick%20Commit.%20Go%20Bears%21%22%2C%22id%22%3A%22C0%22%2C%22rootCommit%22%3Atrue%7D%2C%22C1%22%3A%7B%22type%22%3A%22commit%22%2C%22parents%22%3A%5B%22C0%22%5D%2C%22author%22%3A%22Peter%20Cottle%22%2C%22createTime%22%3A%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%22commitMessage%22%3A%22Quick%20Commit.%20Go%20Bears%21%22%2C%22id%22%3A%22C1%22%7D%7D%2C%22HEAD%22%3A%7B%22id%22%3A%22HEAD%22%2C%22target%22%3A%22master%22%2C%22type%22%3A%22general%20ref%22%7D%7D"));
+  var defaultTree = JSON.parse(unescape("%7B%22commits%22%3A%20%7B%22C1%22%3A%20%7B%22author%22%3A%20%22Peter%20Cottle%22%2C%20%22commitMessage%22%3A%20%22Quick%20Commit.%20Go%20Bears%21%22%2C%20%22createTime%22%3A%20%22Mon%20Nov%2005%202012%2000%3A56%3A48%20GMT-0800%20%28PST%29%22%2C%20%22parents%22%3A%20%5B%22C0%22%5D%2C%20%22type%22%3A%20%22commit%22%2C%20%22id%22%3A%20%22C1%22%7D%2C%20%22C0%22%3A%20%7B%22author%22%3A%20%22Peter%20Cottle%22%2C%20%22commitMessage%22%3A%20%22Quick%20Commit.%20Go%20Bears%21%22%2C%20%22createTime%22%3A%20%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%20%22parents%22%3A%20%5B%5D%2C%20%22id%22%3A%20%22C0%22%2C%20%22type%22%3A%20%22commit%22%2C%20%22rootCommit%22%3A%20true%7D%7D%2C%20%22wd%22%3A%20%7B%22parents%22%3A%20%5B%22C0%22%5D%2C%20%22active_bm%22%3A%20%22main%22%2C%20%22type%22%3A%20%22general%20ref%22%2C%20%22id%22%3A%20%22wd%22%2C%20%22target%22%3A%20%22C1%22%7D%2C%20%22branches%22%3A%20%7B%22main%22%3A%20%7B%22type%22%3A%20%22branch%22%2C%20%22target%22%3A%20%22C1%22%2C%20%22id%22%3A%20%22main%22%7D%7D%7D"));
+  // var defaultTree = JSON.parse(unescape("%7B%22branches%22%3A%7B%22master%22%3A%7B%22target%22%3A%22C1%22%2C%22id%22%3A%22master%22%2C%22type%22%3A%22branch%22%7D%7D%2C%22commits%22%3A%7B%22C0%22%3A%7B%22type%22%3A%22commit%22%2C%22parents%22%3A%5B%5D%2C%22author%22%3A%22Peter%20Cottle%22%2C%22createTime%22%3A%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%22commitMessage%22%3A%22Quick%20Commit.%20Go%20Bears%21%22%2C%22id%22%3A%22C0%22%2C%22rootCommit%22%3Atrue%7D%2C%22C1%22%3A%7B%22type%22%3A%22commit%22%2C%22parents%22%3A%5B%22C0%22%5D%2C%22author%22%3A%22Peter%20Cottle%22%2C%22createTime%22%3A%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%22commitMessage%22%3A%22Quick%20Commit.%20Go%20Bears%21%22%2C%22id%22%3A%22C1%22%7D%7D%2C%22HEAD%22%3A%7B%22id%22%3A%22HEAD%22%2C%22target%22%3A%22master%22%2C%22type%22%3A%22general%20ref%22%7D%7D"));
   this.loadTree(defaultTree);
 };
 
@@ -57,12 +59,12 @@ GitEngine.prototype.init = function() {
   this.rootCommit = this.makeCommit(null, null, {rootCommit: true});
   this.commitCollection.add(this.rootCommit);
 
-  var master = this.makeBranch('master', this.rootCommit);
-  this.HEAD = new Ref({
-    id: 'HEAD',
+  var master = this.makeBranch('main', this.rootCommit); //actually "main"
+  this.wd = new Ref({
+    id: 'wd',
     target: master
   });
-  this.refs[this.HEAD.get('id')] = this.HEAD;
+  this.refs[this.wd.get('id')] = this.wd;
 
   // commit once to get things going
   this.commit();
@@ -75,7 +77,7 @@ GitEngine.prototype.exportTree = function() {
   var totalExport = {
     branches: {},
     commits: {},
-    HEAD: null
+    wd: null
   };
 
   _.each(this.branchCollection.toJSON(), function(branch) {
@@ -101,7 +103,7 @@ GitEngine.prototype.exportTree = function() {
     totalExport.commits[commit.id] = commit;
   }, this);
 
-  var HEAD = this.HEAD.toJSON();
+  var HEAD = this.wd.toJSON();
   HEAD.visBranch = undefined;
   HEAD.lastTarget = HEAD.lastLastTarget = HEAD.visBranch = undefined;
   HEAD.target = HEAD.target.get('id');
@@ -162,7 +164,7 @@ GitEngine.prototype.instantiateFromTree = function(tree) {
   }, this);
 
   var HEAD = this.getOrMakeRecursive(tree, createdSoFar, tree.HEAD.id);
-  this.HEAD = HEAD;
+  this.wd = HEAD;
 
   this.rootCommit = createdSoFar['C0'];
   if (!this.rootCommit) {
@@ -200,8 +202,8 @@ GitEngine.prototype.getOrMakeRecursive = function(tree, createdSoFar, objID) {
       return 'commit';
     } else if (tree.branches[id]) {
       return 'branch';
-    } else if (id == 'HEAD') {
-      return 'HEAD';
+    } else if (id == 'wd') {
+      return 'wd';
     }
     throw new Error("bad type for " + id);
   };
@@ -209,16 +211,16 @@ GitEngine.prototype.getOrMakeRecursive = function(tree, createdSoFar, objID) {
   // figure out what type
   var type = getType(tree, objID);
 
-  if (type == 'HEAD') {
-    var headJSON = tree.HEAD;
-    var HEAD = new Ref(_.extend(
-      tree.HEAD,
+  if (type == 'wd') {
+    var headJSON = tree.wd;
+    var wd = new Ref(_.extend(
+      tree.wd,
       {
         target: this.getOrMakeRecursive(tree, createdSoFar, headJSON.target)
       }
     ));
-    createdSoFar[objID] = HEAD;
-    return HEAD;
+    createdSoFar[objID] = wd;
+    return wd;
   }
 
   if (type == 'branch') {
@@ -266,7 +268,7 @@ GitEngine.prototype.removeAll = function() {
   this.branchCollection.reset();
   this.commitCollection.reset();
   this.refs = {};
-  this.HEAD = null;
+  this.wd = null;
   this.rootCommit = null;
 
   this.gitVisuals.resetAll();
@@ -274,7 +276,7 @@ GitEngine.prototype.removeAll = function() {
 
 GitEngine.prototype.getDetachedHead = function() {
   // detached head is if HEAD points to a commit instead of a branch...
-  var target = this.HEAD.get('target');
+  var target = this.wd.get('target');
   var targetType = target.get('type');
   return targetType !== 'branch';
 };
@@ -330,7 +332,7 @@ GitEngine.prototype.makeBranch = function(id, target) {
 };
 
 GitEngine.prototype.getHead = function() {
-  return _.clone(this.HEAD);
+  return _.clone(this.wd);
 };
 
 GitEngine.prototype.getBranches = function() {
@@ -338,7 +340,7 @@ GitEngine.prototype.getBranches = function() {
   this.branchCollection.each(function(branch) {
     toReturn.push({
       id: branch.get('id'),
-      selected: this.HEAD.get('target') === branch,
+      selected: this.wd.get('target') === branch,
       target: branch.get('target'),
       obj: branch
     });
@@ -352,7 +354,7 @@ GitEngine.prototype.printBranchesWithout = function(without) {
 
   var toPrint = [];
   _.each(commitToBranches[commitID], function(branchJSON) {
-    branchJSON.selected = this.HEAD.get('target').get('id') == branchJSON.id;
+    branchJSON.selected = this.wd.get('target').get('id') == branchJSON.id;
     toPrint.push(branchJSON);
   }, this);
   this.printBranches(toPrint);
@@ -389,6 +391,8 @@ GitEngine.prototype.makeCommit = function(parents, id, options) {
 
   this.refs[commit.get('id')] = commit;
   this.commitCollection.add(commit);
+  // update tip
+  this.setTargetLocation(this.tip, commit);
   return commit;
 };
 
@@ -435,7 +439,7 @@ GitEngine.prototype.oneArgImpliedHead = function(args, option) {
   // for log, show, etc
   this.validateArgBounds(args, 0, 1, option);
   if (args.length === 0) {
-    args.push('HEAD');
+    args.push('tip');
   }
 };
 
@@ -444,7 +448,7 @@ GitEngine.prototype.twoArgsImpliedHead = function(args, option) {
   this.validateArgBounds(args, 1, 2, option);
   // and if it's one, add a HEAD to the back
   if (args.length == 1) {
-    args.push('HEAD');
+    args.push('tip');
   }
 };
 
@@ -476,7 +480,7 @@ GitEngine.prototype.revert = function(whichCommits) {
   var afterSnapshot;
 
   // now make a bunch of commits on top of where we are
-  var base = this.getCommitFromRef('HEAD');
+  var base = this.getCommitFromRef('tip');
   _.each(toRebase, function(oldCommit) {
     var newId = this.rebaseAltID(oldCommit.get('id'));
 
@@ -505,7 +509,7 @@ GitEngine.prototype.revert = function(whichCommits) {
     beforeSnapshot = afterSnapshot;
   }, this);
   // done! update our location
-  this.setTargetLocation('HEAD', base);
+  this.setTargetLocation('wd', base);
 
   // animation
   return animationResponse;
@@ -537,13 +541,13 @@ GitEngine.prototype.resetStarter = function() {
 };
 
 GitEngine.prototype.reset = function(target) {
-  this.setTargetLocation('HEAD', this.getCommitFromRef(target));
+  this.setTargetLocation('wd', this.getCommitFromRef(target));
 };
 
 GitEngine.prototype.cherrypickStarter = function() {
   this.validateArgBounds(this.generalArgs, 1, Number.MAX_VALUE);
 
-  var set = this.getUpstreamSet('HEAD');
+  var set = this.getUpstreamSet('tip');
   // first resolve all the refs (as an error check)
   _.each(this.generalArgs, function(arg) {
     var commit = this.getCommitFromRef(arg);
@@ -561,7 +565,7 @@ GitEngine.prototype.cherrypickStarter = function() {
 
   // hack up the rebase response to animate this better
   var animationResponse = {};
-  animationResponse.destinationBranch = this.resolveID('HEAD');
+  animationResponse.destinationBranch = this.resolveID('wd');
   animationResponse.toRebaseArray = [];
   animationResponse.rebaseSteps = [];
 
@@ -595,8 +599,8 @@ GitEngine.prototype.cherrypick = function(ref) {
   var id = this.rebaseAltID(commit.get('id'));
 
   // now commit with that id onto HEAD
-  var newCommit = this.makeCommit([this.getCommitFromRef('HEAD')], id);
-  this.setTargetLocation(this.HEAD, newCommit);
+  var newCommit = this.makeCommit([this.getCommitFromRef('wd')], id);
+  this.setTargetLocation(this.wd, newCommit);
 
   return newCommit;
 };
@@ -641,13 +645,13 @@ GitEngine.prototype.commitStarter = function() {
 };
 
 GitEngine.prototype.commit = function() {
-  var targetCommit = this.getCommitFromRef(this.HEAD);
+  var targetCommit = this.getCommitFromRef(this.wd);
   var id = null;
 
   // if we want to ammend, go one above
   if (this.commandOptions['--amend']) {
-    targetCommit = this.resolveID('HEAD~1');
-    id = this.rebaseAltID(this.getCommitFromRef('HEAD').get('id'));
+    targetCommit = this.resolveID('tip~1');
+    id = this.rebaseAltID(this.getCommitFromRef('tip').get('id'));
   }
 
   var newCommit = this.makeCommit([targetCommit], id);
@@ -655,7 +659,7 @@ GitEngine.prototype.commit = function() {
     this.command.addWarning(intl.str('git-warning-detached'));
   }
 
-  this.setTargetLocation(this.HEAD, newCommit);
+  this.setTargetLocation(this.wd, newCommit);
   return newCommit;
 };
 
@@ -830,8 +834,8 @@ GitEngine.prototype.getUpstreamBranchSet = function() {
 };
 
 GitEngine.prototype.getUpstreamHeadSet = function() {
-  var set = this.getUpstreamSet('HEAD');
-  var including = this.getCommitFromRef('HEAD').get('id');
+  var set = this.getUpstreamSet('tip');
+  var including = this.getCommitFromRef('tip').get('id');
 
   set[including] = true;
   return set;
@@ -842,7 +846,7 @@ GitEngine.prototype.getOneBeforeCommit = function(ref) {
   // and it will return the ref that is one above a commit. aka
   // it resolves HEAD to something that we can move the ref with
   var start = this.resolveID(ref);
-  if (start === this.HEAD && !this.getDetachedHead()) {
+  if (start === this.tip && !this.getDetachedHead()) {
     start = start.get('target');
   }
   return start;
@@ -1211,7 +1215,7 @@ GitEngine.prototype.mergeStarter = function() {
 };
 
 GitEngine.prototype.merge = function(targetSource) {
-  var currentLocation = 'HEAD';
+  var currentLocation = 'wd';
 
   // first some conditions
   if (this.isUpstreamOf(targetSource, currentLocation) ||
@@ -1411,7 +1415,7 @@ GitEngine.prototype.deleteBranch = function(name) {
 
   if (target.get('type') !== 'branch' ||
       target.get('id') == 'master' ||
-      this.HEAD.get('target') === target) {
+      this.wd.get('target') === target) {
 
     throw new GitError({
       msg: intl.str('git-error-branch')

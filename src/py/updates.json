@@ -1,0 +1,34 @@
+{
+    "branches":
+        {
+            "main":
+                {
+                    "target":"C1",
+                    "id":"main"
+                },
+            "side":
+                {
+                    "target":"C1",
+                    "id":"side"
+                }
+        },
+    "commits":
+        {
+            "C0":
+                {   
+                    "parents":[],
+                    "id":"C0",
+                    "rootCommit":true
+                },
+            "C1":
+                {
+                    "parents":["C0"],
+                    "id":"C1"
+                }
+        },
+    "wd": {
+        "id": "wd",
+        "target": "C1",
+        "active_bm": "side"
+    } 
+}

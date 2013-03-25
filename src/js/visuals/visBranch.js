@@ -61,13 +61,13 @@ var VisBranch = VisBase.extend({
     this.get('branch').set('visBranch', this);
     var id = this.get('branch').get('id');
 
-    if (id == 'HEAD') {
+    if (id == 'wd') {
       // switch to a head ref
       this.set('isHead', true);
       this.set('flip', -1);
 
       this.set('fill', GRAPHICS.headRectFill);
-    } else if (id !== 'master') {
+    } else if (id !== 'main') {
       // we need to set our color to something random
       this.set('fill', randomHueString());
     }

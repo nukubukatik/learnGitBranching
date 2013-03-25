@@ -2,3 +2,4 @@ node_modules/
 screens
 search_replace.sh
 FontAwesome-Vectors.pdf
+build/*

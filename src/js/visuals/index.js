@@ -103,7 +103,7 @@ GitVisuals.prototype.initHeadBranch = function() {
   // this ugly method which will be deleted one day
 
   // seed this with the HEAD pseudo-branch
-  this.addBranchFromEvent(this.gitEngine.HEAD);
+  this.addBranchFromEvent(this.gitEngine.wd);
 };
 
 GitVisuals.prototype.getScreenPadding = function() {

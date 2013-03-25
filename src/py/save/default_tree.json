@@ -1,0 +1,37 @@
+{
+    "commits": {
+        "C1": {
+            "author": "Peter Cottle", 
+            "commitMessage": "Quick Commit. Go Bears!", 
+            "createTime": "Mon Nov 05 2012 00:56:48 GMT-0800 (PST)", 
+            "parents": [
+                "C0"
+            ], 
+            "type": "commit", 
+            "id": "C1"
+        }, 
+        "C0": {
+            "author": "Peter Cottle", 
+            "commitMessage": "Quick Commit. Go Bears!", 
+            "rootCommit": true, 
+            "createTime": "Mon Nov 05 2012 00:56:47 GMT-0800 (PST)", 
+            "parents": [], 
+            "type": "commit", 
+            "id": "C0"
+        }
+    },
+    "wd": {
+        "type": "general ref", 
+        "id": "wd",
+        "target": "C1",
+        "active_bm": "main",
+        "parents":["C0"]
+    }, 
+    "branches": {
+        "main": {
+            "type": "branch", 
+            "target": "C1", 
+            "id": "main"
+        }
+    }
+}
