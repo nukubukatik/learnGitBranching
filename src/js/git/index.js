@@ -35,6 +35,7 @@ function GitEngine(options) {
   this.generalArgs = [];
 
   this.initUniqueID();
+  console.log('engine()',this);
 }
 
 GitEngine.prototype.initUniqueID = function() {
@@ -49,9 +50,11 @@ GitEngine.prototype.initUniqueID = function() {
 
 GitEngine.prototype.defaultInit = function() {
   // lol 80 char limit
+  console.log('load default tree');
   var defaultTree = JSON.parse(unescape("%7B%22commits%22%3A%20%7B%22C1%22%3A%20%7B%22author%22%3A%20%22Peter%20Cottle%22%2C%20%22commitMessage%22%3A%20%22Quick%20Commit.%20Go%20Bears%21%22%2C%20%22createTime%22%3A%20%22Mon%20Nov%2005%202012%2000%3A56%3A48%20GMT-0800%20%28PST%29%22%2C%20%22parents%22%3A%20%5B%22C0%22%5D%2C%20%22type%22%3A%20%22commit%22%2C%20%22id%22%3A%20%22C1%22%7D%2C%20%22C0%22%3A%20%7B%22author%22%3A%20%22Peter%20Cottle%22%2C%20%22commitMessage%22%3A%20%22Quick%20Commit.%20Go%20Bears%21%22%2C%20%22createTime%22%3A%20%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%20%22parents%22%3A%20%5B%5D%2C%20%22id%22%3A%20%22C0%22%2C%20%22type%22%3A%20%22commit%22%2C%20%22rootCommit%22%3A%20true%7D%7D%2C%20%22wd%22%3A%20%7B%22parents%22%3A%20%5B%22C0%22%5D%2C%20%22active_bm%22%3A%20%22main%22%2C%20%22type%22%3A%20%22general%20ref%22%2C%20%22id%22%3A%20%22wd%22%2C%20%22target%22%3A%20%22C1%22%7D%2C%20%22branches%22%3A%20%7B%22main%22%3A%20%7B%22type%22%3A%20%22branch%22%2C%20%22target%22%3A%20%22C1%22%2C%20%22id%22%3A%20%22main%22%7D%7D%7D"));
   // var defaultTree = JSON.parse(unescape("%7B%22branches%22%3A%7B%22master%22%3A%7B%22target%22%3A%22C1%22%2C%22id%22%3A%22master%22%2C%22type%22%3A%22branch%22%7D%7D%2C%22commits%22%3A%7B%22C0%22%3A%7B%22type%22%3A%22commit%22%2C%22parents%22%3A%5B%5D%2C%22author%22%3A%22Peter%20Cottle%22%2C%22createTime%22%3A%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%22commitMessage%22%3A%22Quick%20Commit.%20Go%20Bears%21%22%2C%22id%22%3A%22C0%22%2C%22rootCommit%22%3Atrue%7D%2C%22C1%22%3A%7B%22type%22%3A%22commit%22%2C%22parents%22%3A%5B%22C0%22%5D%2C%22author%22%3A%22Peter%20Cottle%22%2C%22createTime%22%3A%22Mon%20Nov%2005%202012%2000%3A56%3A47%20GMT-0800%20%28PST%29%22%2C%22commitMessage%22%3A%22Quick%20Commit.%20Go%20Bears%21%22%2C%22id%22%3A%22C1%22%7D%7D%2C%22HEAD%22%3A%7B%22id%22%3A%22HEAD%22%2C%22target%22%3A%22master%22%2C%22type%22%3A%22general%20ref%22%7D%7D"));
   this.loadTree(defaultTree);
+  console.log('loadedxor default tree');
 };
 
 GitEngine.prototype.init = function() {
@@ -59,15 +62,30 @@ GitEngine.prototype.init = function() {
   this.rootCommit = this.makeCommit(null, null, {rootCommit: true});
   this.commitCollection.add(this.rootCommit);
 
+  
   var master = this.makeBranch('main', this.rootCommit); //actually "main"
+  
+
+  //working directory
   this.wd = new Ref({
     id: 'wd',
-    target: master
+    target: this.rootCommit,
+    active_bm: master
   });
   this.refs[this.wd.get('id')] = this.wd;
 
+  //and tip
+  this.tip = new Ref({
+    id: 'tip',
+    target: this.rootCommit
+  });
+  this.refs[this.tip.get('id')] = this.tip;
+  console.log('set tip');
+
   // commit once to get things going
+  console.log('init');
   this.commit();
+  console.log('init commit');
 };
 
 GitEngine.prototype.exportTree = function() {
@@ -165,6 +183,7 @@ GitEngine.prototype.instantiateFromTree = function(tree) {
 
   var HEAD = this.getOrMakeRecursive(tree, createdSoFar, tree.HEAD.id);
   this.wd = HEAD;
+  this.tip = HEAD;
 
   this.rootCommit = createdSoFar['C0'];
   if (!this.rootCommit) {
@@ -198,7 +217,7 @@ GitEngine.prototype.getOrMakeRecursive = function(tree, createdSoFar, objID) {
   }
 
   var getType = function(tree, id) {
-    if (tree.commits[id]) {
+    if ( (tree.commits[id])||(id =='tip')) {
       return 'commit';
     } else if (tree.branches[id]) {
       return 'branch';
@@ -340,7 +359,7 @@ GitEngine.prototype.getBranches = function() {
   this.branchCollection.each(function(branch) {
     toReturn.push({
       id: branch.get('id'),
-      selected: this.wd.get('target') === branch,
+      selected: this.wd.get('active_bm') === branch,
       target: branch.get('target'),
       obj: branch
     });
@@ -380,7 +399,7 @@ GitEngine.prototype.makeCommit = function(parents, id, options) {
       id = this.uniqueId('C');
     }
   }
-
+  
   var commit = new Commit(_.extend({
       parents: parents,
       id: id,
@@ -392,7 +411,9 @@ GitEngine.prototype.makeCommit = function(parents, id, options) {
   this.refs[commit.get('id')] = commit;
   this.commitCollection.add(commit);
   // update tip
-  this.setTargetLocation(this.tip, commit);
+  if (this.tip!=null) {
+    this.setTargetLocation('tip', commit);
+  }
   return commit;
 };
 
@@ -647,7 +668,7 @@ GitEngine.prototype.commitStarter = function() {
 GitEngine.prototype.commit = function() {
   var targetCommit = this.getCommitFromRef(this.wd);
   var id = null;
-
+  console.log('commit');
   // if we want to ammend, go one above
   if (this.commandOptions['--amend']) {
     targetCommit = this.resolveID('tip~1');
@@ -655,16 +676,18 @@ GitEngine.prototype.commit = function() {
   }
 
   var newCommit = this.makeCommit([targetCommit], id);
-  if (this.getDetachedHead()) {
-    this.command.addWarning(intl.str('git-warning-detached'));
-  }
+  // if (this.getDetachedHead()) {
+  //   this.command.addWarning(intl.str('git-warning-detached'));
+  // }
 
   this.setTargetLocation(this.wd, newCommit);
+  this.setTargetLocation(this.tip, newCommit);
   return newCommit;
 };
 
 GitEngine.prototype.resolveName = function(someRef) {
   // first get the obj
+  console.log("resolven",someRef);
   var obj = this.resolveID(someRef);
   if (obj.get('type') == 'commit') {
     return 'commit ' + obj.get('id');
@@ -677,6 +700,7 @@ GitEngine.prototype.resolveName = function(someRef) {
 };
 
 GitEngine.prototype.resolveID = function(idOrTarget) {
+  console.log("resolveid",idOrTarget);
   if (idOrTarget === null || idOrTarget === undefined) {
     throw new Error('Dont call this with null / undefined');
   }
@@ -723,6 +747,7 @@ GitEngine.prototype.resolveRelativeRef = function(commit, relative) {
 };
 
 GitEngine.prototype.resolveStringRef = function(ref) {
+  console.log('resolveStringRef');
   if (this.refs[ref]) {
     return this.refs[ref];
   }
@@ -760,6 +785,7 @@ GitEngine.prototype.resolveStringRef = function(ref) {
 };
 
 GitEngine.prototype.getCommitFromRef = function(ref) {
+  console.log('ref->commit:',ref);
   var start = this.resolveID(ref);
 
   // works for both HEAD and just a single layer. aka branch
@@ -770,10 +796,12 @@ GitEngine.prototype.getCommitFromRef = function(ref) {
 };
 
 GitEngine.prototype.getType = function(ref) {
+  console.log('gettype:',ref);
   return this.resolveID(ref).get('type');
 };
 
 GitEngine.prototype.setTargetLocation = function(ref, target) {
+  console.log('setLoc:',ref,target);
   if (this.getType(ref) == 'commit') {
     // nothing to do
     return;
@@ -845,6 +873,7 @@ GitEngine.prototype.getOneBeforeCommit = function(ref) {
   // you can call this command on HEAD in detached, HEAD, or on a branch
   // and it will return the ref that is one above a commit. aka
   // it resolves HEAD to something that we can move the ref with
+  console.log('onebefore');
   var start = this.resolveID(ref);
   if (start === this.tip && !this.getDetachedHead()) {
     start = start.get('target');
@@ -1448,6 +1477,7 @@ GitEngine.prototype.filterError = function(err) {
 GitEngine.prototype.dispatch = function(command, deferred) {
   // current command, options, and args are stored in the gitEngine
   // for easy reference during processing.
+  console.log('command:',command,deferred);
   this.command = command;
   this.commandOptions = command.get('supportedMap');
   this.generalArgs = command.get('generalArgs');

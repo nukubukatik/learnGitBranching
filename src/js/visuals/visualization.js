@@ -59,6 +59,7 @@ var Visualization = Backbone.View.extend({
       gitVisuals: this.gitVisuals,
       eventBaton: this.eventBaton
     });
+    console.log('its the engine');
     this.gitEngine.init();
     this.gitVisuals.assignGitEngine(this.gitEngine);
 

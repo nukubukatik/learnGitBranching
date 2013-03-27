@@ -103,7 +103,8 @@ GitVisuals.prototype.initHeadBranch = function() {
   // this ugly method which will be deleted one day
 
   // seed this with the HEAD pseudo-branch
-  this.addBranchFromEvent(this.gitEngine.wd);
+  this.addBranchFromEvent(this.gitEngine.wd.get('active_bm'));
+  console.log('initHead',this.gitEngine.wd.get('active_bm'));
 };
 
 GitVisuals.prototype.getScreenPadding = function() {
@@ -606,6 +607,7 @@ GitVisuals.prototype.addBranchFromEvent = function(branch, collection, index) {
 };
 
 GitVisuals.prototype.addBranch = function(branch) {
+  console.log('add branch',branch);
   var visBranch = new VisBranch({
     branch: branch,
     gitVisuals: this,

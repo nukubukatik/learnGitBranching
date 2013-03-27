@@ -39,6 +39,7 @@ var VisBranch = VisBase.extend({
   },
 
   validateAtInit: function() {
+    console.log('visbranch',this);
     if (!this.get('branch')) {
       throw new Error('need a branch!');
     }
